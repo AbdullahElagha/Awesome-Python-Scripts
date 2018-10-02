@@ -1,0 +1,110 @@
+import os
+import json 
+import csv
+import fileinput
+import re
+import subprocess
+
+name_list = []
+
+
+def import_from_csv():
+	x = 0
+	filename = "new_users.csv"
+	with open(filename, newline='') as csvfile:
+		csvreader = csv.reader(csvfile, delimiter=',')
+		for row in csvreader:
+			name_list.append(row)
+	for entry in name_list:	
+		entry[0] = entry[0].replace(" ", ".")
+		print(entry[0])
+
+
+def create_users(UserName):
+	os.system("aws iam create-user --user-name {}".format(UserName))
+
+
+def delete_users(UserName):
+	os.system("aws iam delete-user --user-name {}".format(UserName))
+
+
+def create_login_profile(UserName):
+	display_name = UserName.replace(".", "_")
+	login_profile_file_name = '{}_Login_Profile.json'.format(display_name)
+
+	login_profile = {
+		'UserName': UserName ,
+		'Password': 'Ch@ng3MeNow!',
+		'PasswordResetRequired': True 
+		}
+
+	with open(login_profile_file_name, 'w') as outfile:
+		json.dump(login_profile, outfile, indent=4)
+
+
+def create_user_password(UserName):
+	display_name = UserName.replace(".", "_")
+	os.system("aws iam create-login-profile --cli-input-json file://{}_Login_Profile.json".format(display_name))
+
+
+def create_access_key(UserName):
+	display_name = UserName.replace(".", "_")
+	os.system("aws iam create-access-key --user-name {} > {}_credentials.txt".format(UserName, display_name))
+
+
+def add_user_to_group(UserName):
+	print(UserName)
+	group_list =  []
+	for entry in name_list:
+		group_list.append(entry[2:])
+
+	for entry in name_list:
+		group_num = len(entry) - 2
+		print(group_num)
+	for x in group_list:
+		count = 2
+		print(x)
+		while count <= len(x):
+			os.system("aws iam add-user-to-group --user-name {} --group-name {}".format(UserName, entry[count]))
+			count = count + 1
+
+def attach_user_policy(UserName):
+	
+
+
+
+def generate_email(UserName):
+	display_name = UserName.replace(".", " ")
+	with open('New User Account Email.txt', 'r') as file:
+		read_file = file.read()
+	read_file = read_file.replace('FIRSTNAME.LASTNAME', UserName)
+	with open('{} Account Email.txt'.format(display_name), 'w') as file:
+		file.write(read_file)
+
+
+
+import_from_csv()
+
+print(name_list)
+
+for user in name_list:
+	# delete_users(user[0])
+	print("~~~~~~~~~~~~~~~~~~~~~creating user~~~~~~~~~~~~~~~~~~~~~")
+	create_users(user[0])
+	print("~~~~~~~~~~~~~~~~~~~~~user created~~~~~~~~~~~~~~~~~~~~~")
+	print("~~~~~~~~~~~~~~~~~~~~~creating login login profile~~~~~~~~~~~~~~~~~~~~~")
+	create_login_profile(user[0])
+	print("~~~~~~~~~~~~~~~~~~~~~Login profile created~~~~~~~~~~~~~~~~~~~~~")
+	print("~~~~~~~~~~~~~~~~~~~~~creating password~~~~~~~~~~~~~~~~~~~~~")
+	create_user_password(user[0])
+	print("~~~~~~~~~~~~~~~~~~~~~password created~~~~~~~~~~~~~~~~~~~~~")
+	print("~~~~~~~~~~~~~~~~~~~~~generating email~~~~~~~~~~~~~~~~~~~~~")
+	generate_email(user[0])
+	print("~~~~~~~~~~~~~~~~~~~~~email generated~~~~~~~~~~~~~~~~~~~~~")
+	print("~~~~~~~~~~~~~~~~~~~~~adding user to group~~~~~~~~~~~~~~~~~~~~~")
+	add_user_to_group(user[0])
+	print("~~~~~~~~~~~~~~~~~~~~~user added~~~~~~~~~~~~~~~~~~~~~")
+	print("~~~~~~~~~~~~~~~~~~~~~creating access key~~~~~~~~~~~~~~~~~~~~~")
+	create_access_key(user[0])
+	print("~~~~~~~~~~~~~~~~~~~~~access key created~~~~~~~~~~~~~~~~~~~~~")
+print("~~~~~~~~~~~~~~~~~~~~~DONE~~~~~~~~~~~~~~~~~~~~~")
